@@ -1573,3 +1573,14 @@ tbody tr:last-child td { border-bottom:none!important; }
   .stats-container { grid-template-columns:1fr 1fr!important; }
   #mobileMenuBtn { display:flex!important; }
 }
+
+body, html {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
