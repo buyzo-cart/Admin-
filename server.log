@@ -1,0 +1,7 @@
+127.0.0.1 - - [13/Jul/2026 07:03:23] "HEAD /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2026 07:04:41] "GET /index.html HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2026 07:04:41] "GET /admin.css HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2026 07:04:41] "GET /config.js HTTP/1.1" 200 -
+127.0.0.1 - - [13/Jul/2026 07:04:41] code 404, message File not found
+127.0.0.1 - - [13/Jul/2026 07:04:41] "GET /security.js HTTP/1.1" 404 -
+127.0.0.1 - - [13/Jul/2026 07:04:41] "GET /admin.js HTTP/1.1" 200 -

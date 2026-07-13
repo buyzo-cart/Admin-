@@ -1,22 +1,38 @@
 // Buyzo Cart Admin Panel - JavaScript
 
-
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCHFUx3Y1L3mvyLyDMHVKQE6eXi50_fewE",
-      authDomain: "buyzocart.firebaseapp.com",
-      databaseURL: "https://buyzocart-default-rtdb.firebaseio.com",
-      projectId: "buyzocart",
-      storageBucket: "buyzocart.firebasestorage.app",
-      messagingSenderId: "640560737762",
-      appId: "1:640560737762:web:7fe368df6486d6da759dbb"
+    // Initialize window.siteConfig globally at the very top
+    window.siteConfig = {
+      imgbbKey: '',
+      razorpayKeyId: '',
+      googleMapsKey: ''
     };
 
-    // Initialize Firebase
+    let ADMIN_IMGBB_KEY = 'YOUR_IMGBB_API_KEY_HERE';
+
+    // Initialize Firebase using global firebaseConfig from config.js
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const storage = firebase.storage();
     const auth = firebase.auth();
+
+    async function loadSiteConfig() {
+      try {
+        const snap = await database.ref('owner_vault/config').once('value');
+        if (snap.exists()) {
+          const config = snap.val();
+          window.siteConfig = {
+            imgbbKey: config.thirdParty?.imgbbKey || '',
+            razorpayKeyId: config.payment?.razorpayKeyId || '',
+            googleMapsKey: config.thirdParty?.googleMapsKey || ''
+          };
+          if (window.siteConfig.imgbbKey) {
+            ADMIN_IMGBB_KEY = window.siteConfig.imgbbKey;
+          }
+        }
+      } catch(e) {
+        console.warn('Could not load site config:', e);
+      }
+    }
 
     // ===== SECURITY: Allowed admin emails =====
     const ALLOWED_ADMIN_EMAILS = [
@@ -51,7 +67,8 @@
       }
     }
 
-    function onAdminLoginSuccess() {
+    async function onAdminLoginSuccess() {
+      await loadSiteConfig();
       document.getElementById('adminLoginPage').style.display = 'none';
       document.getElementById('adminPanel').style.display = 'flex';
       loadDashboardData();
@@ -563,7 +580,7 @@
       if (requiredEmail) {
         showSharedGoogleLogin(shareId, shareData, requiredEmail);
       } else {
-        grantSharedAccess(shareId, shareData);
+        await grantSharedAccess(shareId, shareData);
       }
     }
 
@@ -616,7 +633,7 @@
         const res = await fetch(`https://buyzocart-default-rtdb.firebaseio.com/sharedAdmins/${shareId}.json`);
         const shareData = await res.json();
         if (shareData && shareData.status === 'active') {
-          grantSharedAccess(shareId, shareData, result.user);
+          await grantSharedAccess(shareId, shareData, result.user);
         } else {
           if (errEl) errEl.textContent = 'Access has been revoked.';
         }
@@ -625,7 +642,8 @@
       }
     }
 
-    function grantSharedAccess(shareId, shareData, user) {
+    async function grantSharedAccess(shareId, shareData, user) {
+      await loadSiteConfig();
       sessionStorage.setItem('sharedAdminId', shareId);
       sessionStorage.setItem('sharedPermissions', JSON.stringify(shareData.permissions));
       // ROOT FIX: write uid so Firebase rules work
@@ -3474,14 +3492,19 @@
 
     // ── IMGBB CONFIG FOR ADMIN ─────────────────────────────────────
     // Get your FREE key at https://api.imgbb.com/ → Login → API
-    let ADMIN_IMGBB_KEY = 'YOUR_IMGBB_API_KEY_HERE';
     setTimeout(function() {
       try { database.ref('adminSettings/imgbbKey').once('value').then(function(s){ if(s&&s.exists()&&s.val()){ ADMIN_IMGBB_KEY=s.val(); const b=document.getElementById('imgbbStatusBadge'); if(b){b.textContent='Active ✓';b.style.background='#dcfce7';b.style.color='#15803d';} } }).catch(function(){}); } catch(e) {}
     }, 1000);
 
     async function uploadImageToImgBBAdmin(file) {
-      try { const s = await database.ref('adminSettings/imgbbKey').once('value'); if(s&&s.exists()&&s.val()) ADMIN_IMGBB_KEY=s.val(); } catch(e) {}
-      if (!ADMIN_IMGBB_KEY || ADMIN_IMGBB_KEY === 'YOUR_IMGBB_API_KEY_HERE') {
+      let key = window.siteConfig?.imgbbKey;
+      if (!key) {
+        try { const s = await database.ref('adminSettings/imgbbKey').once('value'); if(s&&s.exists()&&s.val()) key=s.val(); } catch(e) {}
+      }
+      if (!key) {
+        key = ADMIN_IMGBB_KEY;
+      }
+      if (!key || key === 'YOUR_IMGBB_API_KEY_HERE') {
         // Fallback: convert to base64
         return new Promise((resolve) => {
           const reader = new FileReader();
@@ -3495,7 +3518,7 @@
         reader.onload = async (e) => {
           const base64 = e.target.result.split(',')[1];
           const formData = new FormData();
-          formData.append('key', ADMIN_IMGBB_KEY);
+          formData.append('key', key);
           formData.append('image', base64);
           try {
             const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
@@ -3887,7 +3910,7 @@
       if (!file) return;
       const preview = document.getElementById('editCategoryImagePreview');
       preview.innerHTML = '<span style="color:#64748b;font-size:13px;">Uploading...</span>';
-      const imgbbKey = (typeof ADMIN_IMGBB_KEY !== 'undefined' && ADMIN_IMGBB_KEY && ADMIN_IMGBB_KEY !== 'YOUR_IMGBB_API_KEY_HERE') ? ADMIN_IMGBB_KEY : '';
+      const imgbbKey = window.siteConfig?.imgbbKey || ((typeof ADMIN_IMGBB_KEY !== 'undefined' && ADMIN_IMGBB_KEY && ADMIN_IMGBB_KEY !== 'YOUR_IMGBB_API_KEY_HERE') ? ADMIN_IMGBB_KEY : '');
       if (!imgbbKey) {
         // Fallback: read as base64 if no ImgBB key
         const reader = new FileReader();
@@ -3974,7 +3997,7 @@
       if (!file) return;
       const preview = document.getElementById('editBannerImagePreview');
       preview.innerHTML = '<span style="color:#64748b;font-size:13px;">Uploading...</span>';
-      const imgbbKey = (typeof ADMIN_IMGBB_KEY !== 'undefined' && ADMIN_IMGBB_KEY && ADMIN_IMGBB_KEY !== 'YOUR_IMGBB_API_KEY_HERE') ? ADMIN_IMGBB_KEY : '';
+      const imgbbKey = window.siteConfig?.imgbbKey || ((typeof ADMIN_IMGBB_KEY !== 'undefined' && ADMIN_IMGBB_KEY && ADMIN_IMGBB_KEY !== 'YOUR_IMGBB_API_KEY_HERE') ? ADMIN_IMGBB_KEY : '');
       if (!imgbbKey) {
         const reader = new FileReader();
         reader.onload = e => {
@@ -6120,6 +6143,8 @@ async function runSellerLookup(){
 }
 
 
+async function runSellerLookupWithParams(sid, uid) {
+  try {
     // Get products by sellerId (both the input AND found uid)
     var searchIds = [sid];
     if(uid && uid!==sid) searchIds.push(uid);

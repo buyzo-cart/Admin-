@@ -1,8 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+(function() {
+  // Block iFrame embedding
+  if (window.self !== window.top) {
+    document.documentElement.innerHTML = '';
+    throw new Error('Embedding blocked');
+  }
+
+  // Domain lock - only run on allowed domains
+  const allowedDomains = [
+    'buyzo-cart.github.io',
+    'buyzocart.shop',
+    'localhost',
+    '127.0.0.1'
+  ];
+  const hostname = window.location.hostname;
+  if (!allowedDomains.some(d => hostname === d || hostname.endsWith('.' + d))) {
+    document.documentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#0f172a;color:white;"><h2>⛔ Unauthorized Domain</h2></div>';
+    throw new Error('Unauthorized domain');
+  }
+
+  // Block DevTools keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'F12') { e.preventDefault(); return false; }
+    if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) { e.preventDefault(); return false; }
+    if (e.ctrlKey && e.key === 'U') { e.preventDefault(); return false; }
+    if (e.metaKey && e.altKey && e.key === 'I') { e.preventDefault(); return false; }
+  });
+
+  // Block right-click
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); return false; });
+
+  // Block text selection and copy
+  document.addEventListener('selectstart', function(e) { e.preventDefault(); return false; });
+  document.addEventListener('copy', function(e) { e.preventDefault(); return false; });
+
+  // DevTools size detection
+  let devOpen = false;
+  setInterval(function() {
+    if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
+      if (!devOpen) {
+        devOpen = true;
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#0f172a;color:white;text-align:center;"><div><h2>⚠️ Access Restricted</h2><p style="color:#94a3b8;margin-top:8px;">Developer tools detected.</p></div></div>';
+      }
+    } else {
+      devOpen = false;
+    }
+  }, 1000);
+})();
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Buyzo Cart - Admin Panel v2.0</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="admin.css">
